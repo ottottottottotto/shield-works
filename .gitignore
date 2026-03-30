@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Databases (recreated on startup)
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Media files (screenshots/personal)
+*.jpeg
+*.jpg
+*.mp4
+
+# Logs
+*.log

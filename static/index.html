@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shield Works API - Advanced Security Scanner</title>
+    <meta name="description" content="A powerful, automated security scanning utility for URLs and GitHub Repositories.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="mesh-bg">
+        <div class="mesh-blob blob-1"></div>
+        <div class="mesh-blob blob-2"></div>
+        <div class="mesh-blob blob-3"></div>
+    </div>
+
+    <!-- AUTH OVERLAY -->
+    <div id="auth-overlay" class="auth-wrapper">
+        <!-- Landing page (hidden until splash ends) -->
+        <div id="landing-hero" class="landing-content" style="display:none; opacity:0; transition:opacity 1s ease;">
+            <nav class="landing-nav">
+                <div class="landing-logo">Shield Works</div>
+            </nav>
+            <header class="hero-section">
+                <div class="badge-pill">NEW: Version 2.0 with GitHub Integration</div>
+                <h1 class="hero-title">The Future of Automated Security Analysis</h1>
+                <p class="hero-subtitle">Scale your security perimeters with automated URL analysis, source code scanning, and binary logic auditing—all in one unified platform.</p>
+                <button class="primary-btn landing-cta pulse" id="start-discovery-btn">Get Started</button>
+            </header>
+            <div class="feature-grid">
+                <div class="feature-card glass-card clay">
+                    <div class="card-icon">🌐</div>
+                    <h4>Remote Surface Matrix</h4>
+                    <p>Automated URL scanning with real-time payload analysis and vulnerability fingerprinting.</p>
+                </div>
+                <div class="feature-card glass-card clay">
+                    <div class="card-icon">📂</div>
+                    <h4>Binary Heuristics</h4>
+                    <p>Deep-dive analysis of Software Binaries, APKs, and Executables to identify hardcoded logic flaws.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Splash animation -->
+        <div id="welcome-sequence" class="welcome-container">
+            <h1 class="welcome-logo">Shield Works</h1>
+            <div class="glow-line"></div>
+            <p class="welcome-subtext">Initializing Security Protocols...</p>
+        </div>
+
+        <!-- Login / Signup forms (shown on Get Started click) -->
+        <div id="auth-forms-container" class="auth-forms-container" style="display:none;">
+            <div id="login-view" class="auth-card glass-card clay active-form">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Authenticate to access the dashboard.</p>
+                <form id="login-form">
+                    <div class="input-group">
+                        <input type="text" id="login-username" required autocomplete="username">
+                        <label for="login-username">Username</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="login-password" required autocomplete="current-password">
+                        <label for="login-password">Password</label>
+                    </div>
+                    <p class="auth-error hidden" id="login-error">Invalid credentials.</p>
+                    <button type="submit" class="primary-btn pulse"><span class="btn-text">Sign In</span></button>
+                    <p class="auth-switch-text">New here? <a href="#" id="switch-to-signup">Create an account</a></p>
+                </form>
+            </div>
+            <div id="signup-view" class="auth-card glass-card clay hidden">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Join Shield Works to begin evaluating.</p>
+                <form id="signup-form">
+                    <div class="input-group">
+                        <input type="text" id="signup-username" required autocomplete="username">
+                        <label for="signup-username">Choose a Username</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="signup-password" required autocomplete="new-password">
+                        <label for="signup-password">Create a Password</label>
+                    </div>
+                    <div class="select-group">
+                        <label class="static-label">Select Your Role</label>
+                        <select id="signup-role" required class="clay-select">
+                            <option value="" disabled selected>Select Role</option>
+                            <option value="Employee">Employee</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <p class="auth-error hidden" id="signup-error">Account creation failed.</p>
+                    <button type="submit" class="primary-btn"><span class="btn-text">Register Account</span></button>
+                    <p class="auth-switch-text">Already have an account? <a href="#" id="switch-to-login">Sign In</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP (hidden until login) -->
+    <div class="app-layout" id="main-app" style="display:none; opacity:0; transition:opacity 1.5s ease;">
+        <nav class="sidebar">
+            <div class="sidebar-logo"><h1 class="gradient-text-small">Shield Works</h1></div>
+            <ul class="nav-links">
+                <li class="nav-item active" data-view="overview"><span class="icon">📊</span> Overview</li>
+                <li class="nav-item" data-view="new-scan"><span class="icon">🔍</span> New Scan</li>
+                <li class="nav-item" data-view="history"><span class="icon">📜</span> History</li>
+                <li class="nav-item" data-view="settings"><span class="icon">⚙️</span> Settings</li>
+            </ul>
+            <div class="status-indicator" id="api-status-widget">
+                <span class="status-dot"></span>
+                <span class="status-text">Scanner Online</span>
+            </div>
+        </nav>
+
+        <main class="content-area">
+            <!-- OVERVIEW -->
+            <section id="view-overview" class="view active">
+                <header class="view-header"><h2>Security Posture</h2><p class="subtitle">Real-time aggregate analysis across all perimeters.</p></header>
+                <div class="metrics-grid">
+                    <div class="metric-card clay"><span class="metric-label">Total Scans</span><span class="metric-value" id="stat-total-scans">0</span></div>
+                    <div class="metric-card clay"><span class="metric-label">Avg. Security Score</span><span class="metric-value" id="stat-avg-score">0%</span></div>
+                    <div class="metric-card clay"><span class="metric-label">Critical Findings</span><span class="metric-value danger" id="stat-critical-count">0</span></div>
+                </div>
+                <div class="recent-activity glass-card"><h3>Recent Activity</h3><div id="recent-scans-list" class="activity-feed"><p class="empty-msg">No recent activity detected.</p></div></div>
+            </section>
+
+            <!-- NEW SCAN -->
+            <section id="view-new-scan" class="view hidden">
+                <header class="view-header"><h2>Initiate Analysis</h2></header>
+                <div class="glass-card main-interface" id="input-section">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-target="url-scan">URL Scanner</button>
+                        <button class="tab-btn" data-target="github-scan">GitHub Scanner</button>
+                        <button class="tab-btn" data-target="local-scan">Local Codebase</button>
+                        <button class="tab-btn" data-target="software-scan">Software / APK Scanner</button>
+                    </div>
+                    <div class="tab-content active" id="url-scan">
+                        <form id="url-form" class="scan-form">
+                            <div class="input-group"><input type="text" id="url-input" placeholder="https://example.com" required autocomplete="off"><label for="url-input">Target URL</label></div>
+                            <button type="submit" class="primary-btn"><span class="btn-text">Initiate Scan</span></button>
+                        </form>
+                    </div>
+                    <div class="tab-content hidden" id="github-scan">
+                        <form id="github-form" class="scan-form">
+                            <div class="input-group"><input type="url" id="repo-input" placeholder="https://github.com/user/repo" required autocomplete="off"><label for="repo-input">Target Repository</label></div>
+                            <button type="submit" class="primary-btn"><span class="btn-text">Analyze Source Code</span></button>
+                        </form>
+                    </div>
+                    <div class="tab-content hidden" id="local-scan">
+                        <form id="local-form" class="scan-form">
+                            <div class="input-group"><input type="text" id="local-path" required placeholder="e.g. C:\Evaluating\App" autocomplete="off"><label for="local-path">Local Directory Path</label></div>
+                            <button type="submit" class="primary-btn"><span class="btn-text">Scan Local Codebase</span></button>
+                        </form>
+                    </div>
+                    <div class="tab-content hidden" id="software-scan">
+                        <form id="software-form" class="scan-form" enctype="multipart/form-data">
+                            <div class="input-group" style="padding-top:10px;">
+                                <div class="file-upload-zone clay" id="file-drop-zone">
+                                    <input type="file" id="software-file" name="software" accept=".apk,.exe,.zip,.jar,.bin" required style="display:none;">
+                                    <label for="software-file" class="upload-label" id="upload-label">
+                                        <span class="upload-icon">📁</span>
+                                        <span class="upload-text">Drag & Drop your binary file here<br/>or <span class="browse-link" style="color:var(--primary-blue);font-weight:bold;cursor:pointer;">Browse Local Files</span></span>
+                                        <span class="upload-hint">Supported formats: .apk, .exe, .zip, .jar (Max 50MB)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="primary-btn" style="margin-top:5px;"><span class="btn-text">Analyze Software Binary</span></button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LOADING -->
+            <section id="view-loading" class="view hidden glass-card">
+                <div class="pulse-ring"></div>
+                <p class="loading-text" id="loading-msg">Analyzing remote attack surface...</p>
+            </section>
+
+            <!-- RESULTS -->
+            <section id="view-results" class="view hidden">
+                <button class="reset-btn glass-card" id="new-scan-btn">← New Scan</button>
+                <div class="dashboard-header glass-card">
+                    <div class="score-container">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring__circle bg" stroke="var(--glass-border)" stroke-width="8" fill="transparent" r="52" cx="60" cy="60"/>
+                            <circle class="progress-ring__circle fg" stroke="var(--cyan)" stroke-width="8" fill="transparent" r="52" cx="60" cy="60"/>
+                        </svg>
+                        <div class="score-number-wrapper"><span id="score-number">100</span><span class="pct">%</span></div>
+                    </div>
+                    <div class="summary-info">
+                        <h2 class="target-title" id="scan-target">https://target.com</h2>
+                        <p class="timestamp">Scanned on <span id="scan-time">N/A</span></p>
+                        <div class="severity-badges">
+                            <div class="badge critical"><span id="count-critical">0</span> Critical</div>
+                            <div class="badge high"><span id="count-high">0</span> High</div>
+                            <div class="badge medium"><span id="count-medium">0</span> Medium</div>
+                            <div class="badge low"><span id="count-low">0</span> Low</div>
+                            <div class="badge info"><span id="count-info">0</span> Info</div>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="primary-btn pulse" id="download-pdf-btn" style="width:auto;padding:0.8rem 1.5rem;margin-top:0;"><span class="icon">📄</span> Export PDF</button>
+                    </div>
+                </div>
+                <div class="findings-container">
+                    <div class="filter-controls glass-card"><h3>Findings</h3></div>
+                    <div id="findings-list" class="findings-list"></div>
+                </div>
+            </section>
+
+            <!-- HISTORY -->
+            <section id="view-history" class="view hidden">
+                <header class="view-header"><h2>Scan Registry</h2><p class="subtitle">Historical audit logs of all security evaluations.</p></header>
+                <div class="history-controls"><button class="reset-btn glass-card" id="clear-history-btn">Clear All Records</button></div>
+                <div id="history-list" class="history-grid"></div>
+            </section>
+
+            <!-- SETTINGS -->
+            <section id="view-settings" class="view hidden">
+                <header class="view-header"><h2>Application Settings</h2><p class="subtitle">Personalize your Workspace environment.</p></header>
+                <div class="glass-card main-interface theme-config">
+                    <h3>Theme Customization</h3>
+                    <p class="config-text">Adjust the primary accent color of the Shield Works interface.</p>
+                    <div class="input-group color-picker-group">
+                        <input type="color" id="theme-color-wheel" value="#38bdf8">
+                        <label for="theme-color-wheel">Primary Accent Color</label>
+                    </div>
+                    <div class="theme-presets">
+                        <button class="preset-btn" data-color="#38bdf8" style="background:#38bdf8;"></button>
+                        <button class="preset-btn" data-color="#f43f5e" style="background:#f43f5e;"></button>
+                        <button class="preset-btn" data-color="#2dd4bf" style="background:#2dd4bf;"></button>
+                        <button class="preset-btn" data-color="#fbbf24" style="background:#fbbf24;"></button>
+                        <button class="preset-btn" data-color="#a855f7" style="background:#a855f7;"></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <nav class="mobile-nav">
+        <div class="mobile-nav-item active" data-view="overview"><span class="icon">📊</span><span class="label">Status</span></div>
+        <div class="mobile-nav-item" data-view="new-scan"><span class="icon">🔍</span><span class="label">Scan</span></div>
+        <div class="mobile-nav-item" data-view="history"><span class="icon">📜</span><span class="label">Logs</span></div>
+        <div class="mobile-nav-item" data-view="settings"><span class="icon">⚙️</span><span class="label">Config</span></div>
+    </nav>
+
+    <div id="advisor-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-card clay">
+            <div class="modal-header"><span class="modal-icon" id="advisor-icon">🛡️</span><h3 id="advisor-title">Security Insight</h3></div>
+            <div class="modal-body">
+                <p id="advisor-text">Analyzing your results to provide strategic advice...</p>
+                <div class="priority-fix" id="advisor-priority-box"><span class="fix-label">TOP PRIORITY</span><p id="advisor-priority-text">Loading recommendation...</p></div>
+            </div>
+            <div class="modal-footer"><button class="primary-btn" id="close-advisor-btn">Understood</button></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

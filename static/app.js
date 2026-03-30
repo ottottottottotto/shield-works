@@ -4,9 +4,107 @@ document.addEventListener('DOMContentLoaded', () => {
     const State = {
         currentUser: localStorage.getItem('shieldworks_user') || null,
         currentView: 'overview',
-        scans: [],
-        isScanning: false
+        scans: JSON.parse(localStorage.getItem('shieldworks_local_scans') || '[]'),
+        isScanning: false,
+        isMockMode: location.hostname.includes('github.io') || location.protocol === 'file:'
     };
+
+    // --- MOCK API ENGINE (FOR GITHUB PAGES) ---
+    const MockDB = {
+        getScans: () => State.scans,
+        saveScan: (scan) => {
+            State.scans.unshift(scan);
+            localStorage.setItem('shieldworks_local_scans', JSON.stringify(State.scans));
+        },
+        clearScans: () => {
+            State.scans = [];
+            localStorage.setItem('shieldworks_local_scans', '[]');
+        }
+    };
+
+    const MockAPI = {
+        login: async (u, p) => {
+            await new Promise(r => setTimeout(r, 800));
+            return { ok: true, json: async () => ({ status: 'success', username: u, role: 'Security Lead', theme_color: '#38bdf8' }) };
+        },
+        signup: async (u, p, r) => {
+            await new Promise(r => setTimeout(r, 800));
+            return { ok: true, json: async () => ({ status: 'success', username: u, role: r }) };
+        },
+        fetchScans: async () => {
+            return { ok: true, json: async () => MockDB.getScans() };
+        },
+        saveScan: async (scan) => {
+            MockDB.saveScan(scan);
+            return { ok: true, json: async () => ({ status: 'success' }) };
+        },
+        deleteScans: async () => {
+            MockDB.clearScans();
+            return { ok: true, json: async () => ({ status: 'success' }) };
+        },
+        runScan: async (endpoint, payload) => {
+            await new Promise(r => setTimeout(r, 2500)); // Simulate analysis delay
+            const target = payload.url || payload.repo_url || payload.directory || "Simulated Binary";
+            const scanType = endpoint.split('/').pop();
+            
+            const findings = MockAPI.generateFindings(scanType, target);
+            const score = MockAPI.calculateScore(findings);
+            
+            return {
+                ok: true,
+                json: async () => ({
+                    target,
+                    scan_type: scanType,
+                    score,
+                    findings,
+                    severity_counts: MockAPI.countSeverities(findings),
+                    scanned_at: new Date().toISOString()
+                })
+            };
+        },
+        generateFindings: (type, target) => {
+            const generic = [
+                { category: "Protocol", title: "TLS 1.2 Configuration", severity: "info", description: "Standard secure protocol detected.", recommendation: "No action needed." },
+                { category: "Headers", title: "Missing HSTS", severity: "high", description: "Strict-Transport-Security header is missing.", recommendation: "Add HSTS header to avoid downgrade attacks." }
+            ];
+            const secrets = [
+                { category: "Secrets", title: "Potential API Key", severity: "critical", description: "Found high-entropy string in code logic.", recommendation: "Rotate the exposed secret immediately." },
+                { category: "Logic", title: "Hardcoded Credential", severity: "critical", description: "Password string detected in binary signature.", recommendation: "Move credentials to environment variables." }
+            ];
+            
+            if (type === 'github' || type === 'local') return [...generic, ...secrets];
+            if (type === 'software') return [...secrets];
+            return generic;
+        },
+        calculateScore: (findings) => {
+            let score = 100;
+            findings.forEach(f => {
+                if (f.severity === 'critical') score -= 25;
+                else if (f.severity === 'high') score -= 15;
+                else if (f.severity === 'medium') score -= 5;
+            });
+            return Math.max(score, 5);
+        },
+        countSeverities: (findings) => {
+            const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+            findings.forEach(f => counts[f.severity]++);
+            return counts;
+        }
+    };
+
+    const smartFetch = async (url, options = {}) => {
+        if (State.isMockMode) {
+            if (url.includes('/api/auth/login')) return MockAPI.login(JSON.parse(options.body).username);
+            if (url.includes('/api/auth/signup')) return MockAPI.signup(JSON.parse(options.body).username, null, JSON.parse(options.body).role);
+            if (url.includes('/api/scans/') && options.method === 'DELETE') return MockAPI.deleteScans();
+            if (url.includes('/api/scans/')) return MockAPI.fetchScans();
+            if (url.includes('/api/scans') && options.method === 'POST') return MockAPI.saveScan(JSON.parse(options.body));
+            if (url.includes('/api/scan/')) return MockAPI.runScan(url, JSON.parse(options.body || '{}'));
+            if (url.includes('/api/status')) return { ok: true, json: async () => ({ status: 'online (Simulation Mode)' }) };
+        }
+        return fetch(url, options);
+    };
+
 
     // --- AUTHENTICATION & WELCOME ANIMATION ---
     const authOverlay = document.getElementById('auth-overlay');
@@ -64,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             err.classList.add('hidden');
             
             try {
-                const res = await fetch('/api/auth/login', {
+                const res = await smartFetch('/api/auth/login', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username: u, password: p})
@@ -92,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             err.classList.add('hidden');
             
             try {
-                const res = await fetch('/api/auth/signup', {
+                const res = await smartFetch('/api/auth/signup', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username: u, password: p, role: r})
@@ -206,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchUserScans() {
         if (!State.currentUser) return;
         try {
-            const res = await fetch(`/api/scans/${State.currentUser}`);
+            const res = await smartFetch(`/api/scans/${State.currentUser}`);
             if (res.ok) {
                 const rawScans = await res.json();
                 // Ensure severity_counts exists for every scan
@@ -404,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switchView('loading');
         
         try {
-            const response = await fetch(endpoint, {
+            const response = await smartFetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -428,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switchView('loading');
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await smartFetch(endpoint, {
                 method: 'POST',
                 body: formData
             });
@@ -451,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!State.currentUser) return;
         
         try {
-            await fetch('/api/scans', {
+            await smartFetch('/api/scans', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -474,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!State.currentUser) return;
         if (confirm('Are you sure you want to delete all scan records? This cannot be undone.')) {
             try {
-                const res = await fetch(`/api/scans/${State.currentUser}`, { method: 'DELETE' });
+                const res = await smartFetch(`/api/scans/${State.currentUser}`, { method: 'DELETE' });
                 if (res.ok) {
                     State.scans = [];
                     renderHistory();
@@ -681,9 +779,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const widget = document.getElementById('api-status-widget');
         if (!widget) return;
         try {
-            const resp = await fetch('/api/status');
+            const resp = await smartFetch('/api/status');
             const data = await resp.json();
-            if (data.status === 'online') {
+            if (data.status.includes('online')) {
                 widget.querySelector('.status-dot').style.background = '#10b981';
                 widget.querySelector('.status-text').textContent = 'Scanner Online';
             }

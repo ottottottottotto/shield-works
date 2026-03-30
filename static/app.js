@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialization flow
+    init();
 
     // --- STATE MANAGEMENT ---
     const State = {
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startBtn.addEventListener('click', () => {
             if (authFormsContainer) {
                 authFormsContainer.style.display = 'flex';
+                if (landingHero) landingHero.style.display = 'none';
             }
         });
     }
@@ -182,14 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeAdvisorBtn: document.getElementById('close-advisor-btn')
     };
 
-    // Initialization flow
-    init();
-
-    // Session persistence check: If already logged in, skip splash and show dashboard
-    if (State.currentUser) {
-        unlockDashboard(true); // true means skip animation
-    }
-
     // --- INITIALIZATION ---
     async function init() {
         setupNavigation();
@@ -197,11 +192,39 @@ document.addEventListener('DOMContentLoaded', () => {
         setupThemeSettings();
         checkApiStatus();
         
+        // Add Logout listener
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+
         if (State.currentUser) {
             await fetchUserScans();
+            unlockDashboard(true); 
+        } else {
+            // Only show splash/landing sequence if NOT logged in
+            startWelcomeSequence();
         }
         
         handleInitialView();
+    }
+
+    function startWelcomeSequence() {
+        // Step 1: After 2s, kill splash and show landing page
+        setTimeout(() => {
+            if (welcomeSeq) welcomeSeq.style.display = 'none';
+            if (landingHero) {
+                landingHero.style.display = 'flex';
+                setTimeout(() => { landingHero.style.opacity = '1'; }, 50);
+            }
+        }, 2000);
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('shieldworks_user');
+        State.currentUser = null;
+        // Simple and robust: reload page to reset all states
+        location.reload();
     }
 
     async function fetchUserScans() {

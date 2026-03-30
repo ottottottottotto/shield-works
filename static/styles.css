@@ -140,6 +140,18 @@ body {
 
 .nav-item.active .icon { filter: brightness(0) invert(1); }
 
+.nav-item.logout {
+    margin-top: auto;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+}
+
+.nav-item.logout:hover {
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--critical);
+    border-color: rgba(244, 63, 94, 0.2);
+}
+
 .status-indicator {
     margin-top: auto;
     padding: 1rem;

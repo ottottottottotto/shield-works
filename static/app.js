@@ -1,5 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- STATE MANAGEMENT ---
+    const State = {
+        currentUser: localStorage.getItem('shieldworks_user') || null,
+        currentView: 'overview',
+        scans: [],
+        isScanning: false
+    };
+
     // --- AUTHENTICATION & WELCOME ANIMATION ---
     const authOverlay = document.getElementById('auth-overlay');
     const authFormsContainer = document.getElementById('auth-forms-container');
@@ -8,8 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainApp = document.getElementById('main-app');
     const landingHero = document.getElementById('landing-hero');
     const welcomeSeq = document.getElementById('welcome-sequence');
-    
-    // Toggle between login / signup
     const switchToSignup = document.getElementById('switch-to-signup');
     if (switchToSignup) {
         switchToSignup.addEventListener('click', (e) => {
@@ -103,37 +109,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function unlockDashboard() {
-        if (!authOverlay) return;
-        authOverlay.classList.add('fade-out');
-        
-        // Also fade out the landing specific content
-        const landing = document.getElementById('landing-hero');
-        if (landing) landing.style.opacity = '0';
 
-        setTimeout(() => {
+    function unlockDashboard(skipAnim = false) {
+        if (!authOverlay) return;
+        
+        if (skipAnim) {
             authOverlay.style.display = 'none';
+            if (landingHero) landingHero.style.display = 'none';
+            if (welcomeSeq) welcomeSeq.style.display = 'none';
             if (mainApp) {
                 mainApp.style.display = 'flex';
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        mainApp.style.opacity = '1';
-                        mainApp.style.pointerEvents = 'auto';
-                    });
-                });
+                mainApp.style.opacity = '1';
+                mainApp.style.pointerEvents = 'auto';
             }
-            init(); // Initialize the dashboard only after login
-        }, 1000);
+        } else {
+            authOverlay.classList.add('fade-out');
+            
+            // Also fade out the landing specific content
+            const landing = document.getElementById('landing-hero');
+            if (landing) landing.style.opacity = '0';
+
+            setTimeout(() => {
+                authOverlay.style.display = 'none';
+                if (mainApp) {
+                    mainApp.style.display = 'flex';
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            mainApp.style.opacity = '1';
+                            mainApp.style.pointerEvents = 'auto';
+                        });
+                    });
+                }
+            }, 1000);
+        }
     }
     
-    // --- STATE MANAGEMENT ---
-    const State = {
-        currentUser: localStorage.getItem('shieldworks_user') || null,
-        currentView: 'overview',
-        scans: [],
-        isScanning: false
-    };
-
     // --- DOM ELEMENTS ---
     const elements = {
         navItems: document.querySelectorAll('.nav-item, .mobile-nav-item'),
@@ -171,11 +181,20 @@ document.addEventListener('DOMContentLoaded', () => {
         closeAdvisorBtn: document.getElementById('close-advisor-btn')
     };
 
+    // Initialization flow
+    init();
+
+    // Session persistence check: If already logged in, skip splash and show dashboard
+    if (State.currentUser) {
+        unlockDashboard(true); // true means skip animation
+    }
+
     // --- INITIALIZATION ---
     async function init() {
         setupNavigation();
         setupForms();
         setupThemeSettings();
+        checkApiStatus();
         
         if (State.currentUser) {
             await fetchUserScans();
@@ -451,13 +470,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function clearHistory() {
+    async function clearHistory() {
+        if (!State.currentUser) return;
         if (confirm('Are you sure you want to delete all scan records? This cannot be undone.')) {
-            // Note: We'd need a DELETE endpoint for full backend clearing. 
-            // For now, we'll just clear the local view and let the user know.
-            State.scans = [];
-            renderHistory();
-            updateDashboardMetrics();
+            try {
+                const res = await fetch(`/api/scans/${State.currentUser}`, { method: 'DELETE' });
+                if (res.ok) {
+                    State.scans = [];
+                    renderHistory();
+                    updateDashboardMetrics();
+                } else {
+                    alert('Backend failed to clear history.');
+                }
+            } catch (e) {
+                console.error("Failed to clear history", e);
+            }
         }
     }
 

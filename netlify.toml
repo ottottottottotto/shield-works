@@ -1,0 +1,9 @@
+[build]
+  publish = "static"
+  command = "echo 'Building static front-end...'"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://shield-works.onrender.com/api/:splat"
+  status = 200
+  force = true

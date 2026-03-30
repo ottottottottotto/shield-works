@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+dnspython
+certifi
+python-multipart
+jinja2
+aiofiles
+psutil

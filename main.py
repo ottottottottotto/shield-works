@@ -3,24 +3,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Tuple
+from typing import Tuple, List, Dict
 import asyncio
 import httpx
-import ssl
-import socket
-import dns.resolver
-import re
-import subprocess
-import tempfile
-import shutil
 import os
-from datetime import datetime, timezone
-from urllib.parse import urlparse
-import concurrent.futures
-import certifi
 import sqlite3
 import hashlib
+import re
+import shutil
+import tempfile
+import subprocess
+import json
+import ssl
+import socket
+import concurrent.futures
+import certifi
+import dns.resolver
+import dns.zone
+import dns.query
+from datetime import datetime, timezone
+from urllib.parse import urlparse
+
 import scanner_logic
+from scanner_logic import Finding, compute_score
 
 app = FastAPI(title="Shield Works API", version="1.0.0")
 
@@ -33,6 +38,10 @@ app.add_middleware(
 
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+async def read_index():
+    return FileResponse("static/index.html")
 
 
 class URLScanRequest(BaseModel):
@@ -73,6 +82,13 @@ def init_db():
             role TEXT NOT NULL
         )
     ''')
+    
+    # Migration: Add theme_color if it doesn't exist
+    c.execute("PRAGMA table_info(users)")
+    columns = [col[1] for col in c.fetchall()]
+    if 'theme_color' not in columns:
+        c.execute("ALTER TABLE users ADD COLUMN theme_color TEXT DEFAULT '#38bdf8'")
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS scans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,13 +154,26 @@ async def signup(request: SignupRequest):
 async def login(request: LoginRequest):
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT password, role FROM users WHERE username = ?", (request.username,))
+    c.execute("SELECT password, role, theme_color FROM users WHERE username = ?", (request.username,))
     row = c.fetchone()
     conn.close()
     hashed_pw = hashlib.sha256(request.password.encode('utf-8')).hexdigest()
     if not row or row[0] != hashed_pw:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    return {"status": "success", "username": request.username, "role": row[1]}
+    return {"status": "success", "username": request.username, "role": row[1], "theme_color": row[2] if len(row) > 2 else "#38bdf8"}
+
+@app.post("/api/user/settings")
+async def save_settings(request: dict):
+    username = request.get("username")
+    theme_color = request.get("theme_color")
+    if not username or not theme_color:
+        raise HTTPException(status_code=400, detail="Missing data")
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE users SET theme_color = ? WHERE username = ?", (theme_color, username))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
 
 @app.post("/api/scans")
 async def save_scan(request: ScanRecord):
@@ -178,39 +207,20 @@ async def get_user_scans(username: str):
         })
     return scans
 
-
-class Finding:
-    def __init__(self, category, title, severity, description, recommendation):
-        self.category = category
-        self.title = title
-        self.severity = severity  # critical, high, medium, low, info
-        self.description = description
-        self.recommendation = recommendation
-
-    def to_dict(self):
-        return {
-            "category": self.category,
-            "title": self.title,
-            "severity": self.severity,
-            "description": self.description,
-            "recommendation": self.recommendation,
-        }
+@app.delete("/api/scans/{username}")
+async def delete_user_scans(username: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('DELETE FROM scans WHERE username = ?', (username,))
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": f"All scans for {username} deleted."}
 
 
-SEVERITY_SCORE = {"critical": 0, "high": 20, "medium": 50, "low": 75, "info": 90}
 
+# ─── SCAN UTILS ─────────────────────────────────────────────────────────────
+# Scan functions have been moved to scanner_logic.py for modularity.
 
-def compute_score(findings):
-    if not findings:
-        return 100
-    penalties = sum(
-        {"critical": 30, "high": 15, "medium": 8, "low": 3, "info": 0}.get(
-            f["severity"], 0
-        )
-        for f in findings
-    )
-    score = max(0, 100 - penalties)
-    return score
 
 
 # ─── SSL/TLS SCANNER ────────────────────────────────────────────────────────
@@ -946,9 +956,6 @@ def scan_software_file(file_bytes: bytes, filename: str) -> list:
 # ─── ROUTES ─────────────────────────────────────────────────────────────────
 
 
-@app.get("/")
-async def index():
-    return FileResponse("static/index.html")
 
 
 @app.post("/api/scan/url")

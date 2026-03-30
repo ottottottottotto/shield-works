@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialization flow
-    init();
 
     // --- STATE MANAGEMENT ---
     const State = {
@@ -735,5 +733,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Run init 
+    // Initialization flow
+    init();
 });

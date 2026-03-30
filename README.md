@@ -4,7 +4,7 @@
 
 ## 🚀 Professional Deployment
 
-This repository is optimized for one-click deployment to **HuggingFace Spaces**, **Render**, or **Heroku**.
+This repository is optimized for one-click deployment on local servers
 
 ### Deployment Specs
 - **SDK**: Docker

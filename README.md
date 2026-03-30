@@ -1,30 +1,38 @@
-# Shield Works
+# Shield Works 🛡️
 
-Advanced Security Evaluation Platform. Unified security evaluation for URLs, GitHub repos, and software binaries.
+**Shield Works** is an advanced security evaluation engine designed for the SecureScope platform. It provides a unified interface for URL analysis, source code scanning, and binary logic auditing.
 
-## Features
-- **Remote Surface Matrix**: Automated URL scanning with real-time payload analysis.
-- **GitHub Integration**: Source code scanning for secrets and vulnerabilities.
-- **Binary Heuristics**: Deep-dive analysis of Software Binaries, APKs, and Executables.
-- **Historical Audit Logs**: Track and review past security evaluations.
+## 🚀 Professional Deployment
 
-## Local Installation
+This repository is optimized for one-click deployment to **HuggingFace Spaces**, **Render**, or **Heroku**.
 
-1. Install Python 3.10+
-2. Install dependencies:
+### Deployment Specs
+- **SDK**: Docker
+- **Default Port**: 7860 (HuggingFace/Cloud Standard)
+- **Engine**: FastAPI (Python 3.11)
+
+## 🛠️ Local Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/ottottottottotto/shield-works.git
+   cd shield-works
+   ```
+
+2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-3. Start the application:
-   ```bash
-   python main.py
-   ```
-4. Access the dashboard at `http://localhost:8000`
 
-## Tech Stack
-- **Backend**: FastAPI (Python)
-- **Frontend**: Vanilla JS, Glassmorphism CSS
-- **Database**: SQLite
+3. **Launch the Scanner**:
+   - **Windows**: Run `Start_ShieldWorks.bat` for an automated setup and browser launch.
+   - **Manual**: Run `python main.py` and access `http://localhost:8000`.
+
+## 🔍 Key Features
+- **Remote Surface Matrix**: Automated URL scanning for SSL/TLS and security headers.
+- **Source Code SAST**: Pattern-based secret and vulnerability detection.
+- **Binary Heuristics**: Deep-dive analysis of Software Binaries and APKs.
+- **Historical Audit**: Persistent storage of security reports.
 
 ---
-Built for Hackathon Demo.
+Built for Hackathon Demo ($0 Budget).
